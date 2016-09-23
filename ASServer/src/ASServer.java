@@ -5,6 +5,7 @@ import javax.swing.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * The class extends the Thread class so we can receive and send messages at the same time
@@ -15,6 +16,9 @@ public class ASServer extends Thread {
     private boolean running = false;
     private PrintWriter mOut;
     private OnMessageReceived messageListener;
+
+    //Stores the received info here
+    ArrayList<String> info;
 
     public static void main(String[] args) {
 
@@ -31,6 +35,7 @@ public class ASServer extends Thread {
      * @param messageListener listens for the messages
      */
     public ASServer(OnMessageReceived messageListener) {
+        info = new ArrayList<String>();
         this.messageListener = messageListener;
     }
 
@@ -69,12 +74,27 @@ public class ASServer extends Thread {
                 //read the message received from client
                 BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
+                boolean connectionEstablished = false;
                 //in this while we wait to receive messages from client (it's an infinite loop)
                 //this while it's like a listener for messages
                 while (running) {
                     String message = in.readLine();
 
-                    if (message != null && messageListener != null) {
+                    if(!connectionEstablished)
+                    {
+                        if (message.equals("HALO"))
+                        {
+                            sendMessage("HAIL2U");
+                            connectionEstablished=true;
+                        }
+                    }
+
+                    info.add(message);
+
+                    sendMessage("RECEIVED -- " + message);
+
+                    if (message != null && messageListener != null)
+                    {
                         //call the method messageReceived from ServerBoard class
                         messageListener.messageReceived(message);
                     }

@@ -1,3 +1,7 @@
+package asteam.asclient;
+
+import java.io.BufferedReader;
+import java.io.PrintWriter;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
@@ -80,6 +84,7 @@ public class ASClient {
                         if (serverMessage.equals("HAIL2U"))
                         {
                             connectionEstablished=true;
+                            sendMessage("SENDING:LOCATION");
                         }
                     }
 
@@ -87,6 +92,7 @@ public class ASClient {
                     {
                         //Format: Longitude:Latitude:Altitude:Velocity
                         //Manager.u
+                        Log.i("funciono", "está intentando enviar info");
                         String locationInfo = Manager.getLongitude() + ":" + Manager.getLatitude() + ":" + Manager.getAltitude() + ":" + Manager.getVelocity();
                         sendMessage(locationInfo);
                         Thread.sleep(1000);
