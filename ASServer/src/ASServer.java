@@ -3,9 +3,12 @@
  */
 import javax.swing.*;
 import java.io.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * The class extends the Thread class so we can receive and send messages at the same time
@@ -13,6 +16,7 @@ import java.util.ArrayList;
 public class ASServer extends Thread {
 
     public static final int SERVERPORT = 4221;
+    public static final int SERVERPORT_UDP = 4222;
     private boolean running = false;
     private PrintWriter mOut;
     private OnMessageReceived messageListener;
@@ -57,10 +61,19 @@ public class ASServer extends Thread {
         running = true;
 
         try {
-            System.out.println("S: Connecting...");
+            System.out.println("S: Initiating TCP Server...");
 
             //create a server socket. A server socket waits for requests to come in over the network.
             ServerSocket serverSocket = new ServerSocket(SERVERPORT);
+    System.out.println("Initiated.");
+
+            System.out.println("S: Initiating UDP Server...");
+
+            byte[] lMsg = new byte[512];
+            DatagramPacket dp = new DatagramPacket(lMsg, lMsg.length);
+            DatagramSocket ds = new DatagramSocket(SERVERPORT_UDP);
+            
+            System.out.println("Initiated.");
 
             //create client socket... the method accept() listens for a connection to be made to this socket and accepts it.
             Socket client = serverSocket.accept();
@@ -82,11 +95,10 @@ public class ASServer extends Thread {
 
                     if(!connectionEstablished)
                     {
-                        if (message.equals("HALO"))
-                        {
-                            sendMessage("HAIL2U");
+                            //First message must be client ip
+                            sendMessage("HAIL2U, " + message + ", let's TCP");
                             connectionEstablished=true;
-                        }
+
                     }
 
                     info.add(message);
@@ -99,6 +111,7 @@ public class ASServer extends Thread {
                         messageListener.messageReceived(message);
                     }
 
+                    System.out.println(new Date() + " - Received - " + message);
                     //add protocol
                 }
 

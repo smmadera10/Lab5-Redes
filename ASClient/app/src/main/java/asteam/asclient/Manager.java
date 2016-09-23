@@ -10,10 +10,12 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
 import asteam.asclient.Adapter;
@@ -37,8 +39,8 @@ public class Manager extends Activity implements LocationListener {
     private Adapter mAdapter;
     private ASClient mTcpClient;
 
-    private SensorManager sensorManager;
-    private Sensor sensor;
+    //private SensorManager sensorManager;
+    //private Sensor sensor;
     LocationManager lm;
 
     //Lab5 info
@@ -46,26 +48,30 @@ public class Manager extends Activity implements LocationListener {
     private static double longitude;
     private static double altitude;
     private static double velocity;
+    private String ip;
 
     @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
-        if ( ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
+    public void onCreate(Bundle savedInstanceState) {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-           // ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  },
-             //       LocationService.MY_PERMISSION_ACCESS_COURSE_LOCATION );
+            // ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  },
+            //       LocationService.MY_PERMISSION_ACCESS_COURSE_LOCATION );
         }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
+      //  sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        //sensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
+
+        WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
+
+        ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
 
         lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
 
-        final EditText editText = (EditText) findViewById(R.id.editText);
-        Button send = (Button)findViewById(R.id.send_button);
+        final Button send = (Button)findViewById(R.id.send_button);
+        final Button protocol = (Button)findViewById(R.id.protocol_button);
 
         //relate the listView from java to the one created in xml
         mList = (ListView)findViewById(R.id.list);
@@ -80,19 +86,45 @@ public class Manager extends Activity implements LocationListener {
             @Override
             public void onClick(View view) {
 
-                String message = editText.getText().toString();
+                if(send.getText().equals("send")) {
 
-                //add the text in the arrayList
-                arrayList.add("c: " + message);
-
-                //sends the message to the server
-                if (mTcpClient != null) {
-                    mTcpClient.sendMessage(message);
+                    send.setText("stop");
+                    mTcpClient.startSending();
+                    protocol.setEnabled(false);
+                }
+                else
+                {
+                    send.setText("send");
+                    mTcpClient.stopSending();
+                    protocol.setEnabled(true);
                 }
 
                 //refresh the list
                 mAdapter.notifyDataSetChanged();
-                editText.setText("");
+
+            }
+        });
+
+        protocol.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                if(protocol.getText().equals("tcp")) {
+
+                    protocol.setText("udp");
+                    mTcpClient.useTCP();
+
+                }
+                else
+                {
+                    protocol.setText("tcp");
+                    mTcpClient.useUDP();
+
+                }
+
+                //refresh the list
+                mAdapter.notifyDataSetChanged();
+
             }
         });
 
@@ -106,7 +138,8 @@ public class Manager extends Activity implements LocationListener {
             longitude = loc.getLongitude();
             latitude = loc.getLatitude();
             altitude = loc.getAltitude();
-            velocity = loc.getSpeed();}
+            velocity = loc.getSpeed();
+        }
         catch (SecurityException e)
         {
             Log.e("Security", "SecurityException in onLocationChanged", e);
@@ -127,6 +160,11 @@ public class Manager extends Activity implements LocationListener {
 
     public static double getVelocity() {
         return velocity;
+    }
+
+    public String getIp()
+    {
+        return ip;
     }
 
     @Override
