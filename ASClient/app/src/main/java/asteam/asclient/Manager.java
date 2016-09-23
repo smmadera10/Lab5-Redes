@@ -74,7 +74,7 @@ public class Manager extends Activity implements LocationListener {
         mList.setAdapter(mAdapter);
 
         // connect to the server
-        new connectTask().execute("");
+        new connectTask(this).execute("");
 
         send.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -98,18 +98,20 @@ public class Manager extends Activity implements LocationListener {
 
     }
 
-//    public void UpdatePosition()
-//    {
-//        try {
-//
-//            Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//
-//        }
-//        catch (SecurityException e)
-//        {
-//            e.printStackTrace();
-//        }
-//    }
+    public void updatePosition()
+    {
+        try
+        {
+            Location loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            longitude = loc.getLongitude();
+            latitude = loc.getLatitude();
+            altitude = loc.getAltitude();
+            velocity = loc.getSpeed();}
+        catch (SecurityException e)
+        {
+            Log.e("Security", "SecurityException in onLocationChanged", e);
+        }
+    }
 
     public static double getLatitude() {
         return latitude;
@@ -131,19 +133,18 @@ public class Manager extends Activity implements LocationListener {
     public void onLocationChanged(Location location) {
         double lastLongitude = longitude;
         double lastLatitude = latitude;
-
-        Location loc = null;
         try
         {
-        loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);}
+        Location loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            longitude = loc.getLongitude();
+            latitude = loc.getLatitude();
+            altitude = loc.getAltitude();
+            velocity = loc.getSpeed();}
         catch (SecurityException e)
         {
             Log.e("Security", "SecurityException in onLocationChanged", e);
         }
-        longitude = loc.getLongitude();
-        latitude = loc.getLatitude();
-        altitude = loc.getAltitude();
-        velocity = loc.getSpeed();
+
 
 //        longitude = location.getLongitude();
 //        latitude = location.getLatitude();
@@ -185,6 +186,12 @@ public class Manager extends Activity implements LocationListener {
 
     public class connectTask extends AsyncTask<String,String,ASClient> {
 
+        private Manager manager ;
+
+        public connectTask(Manager manager)
+        {
+            this.manager = manager;
+        }
         @Override
         protected ASClient doInBackground(String... message) {
 
@@ -196,7 +203,7 @@ public class Manager extends Activity implements LocationListener {
                     //this method calls the onProgressUpdate
                     publishProgress(message);
                 }
-            });
+            }, manager);
             mTcpClient.run();
 
             return null;

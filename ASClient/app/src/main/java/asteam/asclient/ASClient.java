@@ -23,12 +23,14 @@ public class ASClient {
 
     PrintWriter out;
     BufferedReader in;
+    Manager manager;
 
     /**
      *  Constructor of the class. OnMessagedReceived listens for the messages received from server
      */
-    public ASClient(OnMessageReceived listener) {
+    public ASClient(OnMessageReceived listener, Manager manager) {
         mMessageListener = listener;
+        this.manager = manager;
     }
 
     /**
@@ -93,6 +95,7 @@ public class ASClient {
                         //Format: Longitude:Latitude:Altitude:Velocity
                         //Manager.u
                         Log.i("funciono", "está intentando enviar info");
+                        manager.updatePosition();
                         String locationInfo = Manager.getLongitude() + ":" + Manager.getLatitude() + ":" + Manager.getAltitude() + ":" + Manager.getVelocity();
                         sendMessage(locationInfo);
                         Thread.sleep(1000);
