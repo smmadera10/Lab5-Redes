@@ -1,5 +1,6 @@
 package asteam.asclient;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -43,6 +44,8 @@ public class Manager extends Activity implements LocationListener {
     //private Sensor sensor;
     LocationManager lm;
 
+    boolean shouldUseTCP;
+
     //Lab5 info
     private static double latitude;
     private static double longitude;
@@ -54,9 +57,19 @@ public class Manager extends Activity implements LocationListener {
     public void onCreate(Bundle savedInstanceState) {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
-            // ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  },
-            //       LocationService.MY_PERMISSION_ACCESS_COURSE_LOCATION );
+            ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  },
+                  100 );
         }
+
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_WIFI_STATE)
+                != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_WIFI_STATE},
+                    102);
+        }
+        shouldUseTCP = true;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
       //  sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -65,7 +78,7 @@ public class Manager extends Activity implements LocationListener {
         WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
 
         ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-
+        System.out.println("IP: " + ip);
         lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
@@ -80,23 +93,35 @@ public class Manager extends Activity implements LocationListener {
         mList.setAdapter(mAdapter);
 
         // connect to the server
-        new connectTask(this).execute("");
+        final connectTask ct = new connectTask(this);
+        //ct.execute("");
 
         send.setOnClickListener(new View.OnClickListener() {
+            boolean first = true;
             @Override
             public void onClick(View view) {
 
                 if(send.getText().equals("send")) {
 
+                    if(first)
+                    {
+                        first = false;
+                        ct.execute("");
+                    }
+                    else
+                    {
+                        mTcpClient.startSending();
+                    }
+
                     send.setText("stop");
-                    mTcpClient.startSending();
+
                     protocol.setEnabled(false);
                 }
                 else
                 {
                     send.setText("send");
                     mTcpClient.stopSending();
-                    protocol.setEnabled(true);
+                    //protocol.setEnabled(true);
                 }
 
                 //refresh the list
@@ -109,17 +134,17 @@ public class Manager extends Activity implements LocationListener {
             @Override
             public void onClick(View view) {
 
-                if(protocol.getText().equals("tcp")) {
+                if(protocol.getText().equals("use tcp")) {
 
-                    protocol.setText("udp");
-                    mTcpClient.useTCP();
-
+                    protocol.setText("use udp");
+                    shouldUseTCP = true;
+                    System.out.println("passing should use TCP as true");
                 }
                 else
                 {
-                    protocol.setText("tcp");
-                    mTcpClient.useUDP();
-
+                    protocol.setText("use tcp");
+                    shouldUseTCP = false;
+                    System.out.println("passing should use TCP as false");
                 }
 
                 //refresh the list
@@ -222,9 +247,15 @@ public class Manager extends Activity implements LocationListener {
 
     //}
 
+    public boolean getShouldUseTCP()
+    {
+        return shouldUseTCP;
+    }
+
     public class connectTask extends AsyncTask<String,String,ASClient> {
 
         private Manager manager ;
+        //boolean shouldTCP = true;
 
         public connectTask(Manager manager)
         {
@@ -241,10 +272,17 @@ public class Manager extends Activity implements LocationListener {
                     //this method calls the onProgressUpdate
                     publishProgress(message);
                 }
-            }, manager);
+            }, manager, manager.getShouldUseTCP());
             mTcpClient.run();
+            //mTcpClient.startSending();
+            //runClient();
 
             return null;
+        }
+
+        public void runClient()
+        {
+            mTcpClient.run();
         }
 
         @Override

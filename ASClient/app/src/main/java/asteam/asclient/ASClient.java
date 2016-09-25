@@ -9,8 +9,9 @@ import android.util.Log;
 import asteam.asclient.Manager;
 
 import java.io.*;
-import java.net.InetAddress;
-import java.net.Socket;
+import java.net.*;
+
+import static android.R.id.message;
 
 public class ASClient {
 
@@ -19,6 +20,7 @@ public class ASClient {
     public static final String SERVERIP = "192.168.0.13"; //your computer IP address
     public static final int SERVERPORT_TCP = 4221;
     public static final int SERVERPORT_UDP = 4222;
+    public static final int UDP_RECEIVE = 4000;
     private OnMessageReceived mMessageListener = null;
     private boolean mRun = false;
 
@@ -32,21 +34,23 @@ public class ASClient {
     /**
      *  Constructor of the class. OnMessagedReceived listens for the messages received from server
      */
-    public ASClient(OnMessageReceived listener, Manager manager) {
+    public ASClient(OnMessageReceived listener, Manager manager, boolean tcp) {
         mMessageListener = listener;
         this.manager = manager;
         isSendingOptionEnabled = false;
-        shouldUseTCP = true;
+        shouldUseTCP = tcp;
     }
 
     public void useTCP()
     {
         shouldUseTCP = true;
+        System.out.println("Using TCP");
     }
 
     public void useUDP()
     {
         shouldUseTCP = false;
+        System.out.println("Using UDP");
     }
 
     public void startSending()
@@ -75,9 +79,11 @@ public class ASClient {
     }
 
     public void run() {
-
+        System.out.println("sending option: " + isSendingOptionEnabled);
+        System.out.println("should use TCP: " + shouldUseTCP);
         mRun = true;
-
+        isSendingOptionEnabled = true;
+        //if(isSendingOptionEnabled) {
         if (shouldUseTCP) {
             try {
                 //here you must put your computer's IP address.
@@ -106,17 +112,19 @@ public class ASClient {
 
                     //in this while the client listens for the messages sent by the server
                     while (mRun) {
+
+                        mRun = shouldUseTCP;
                         serverMessage = in.readLine();
 
                         if (!connectionEstablished) {
-                            if (serverMessage.equals("HAIL2U")) {
+                            if (serverMessage.equals("HAIL2U," + manager.getIp())) {
                                 connectionEstablished = true;
                                 //sendMessage("SENDING:LOCATION");
                             }
                         } else if (isSendingOptionEnabled) {
                             //Format: Longitude:Latitude:Altitude:Velocity
                             //Manager.u
-                            Log.i("funciono", "está intentando enviar info");
+                            //  Log.i("TCP", "Enviado info TCP");
                             manager.updatePosition();
                             String locationInfo = Manager.getLongitude() + ":" + Manager.getLatitude() + ":" + Manager.getAltitude() + ":" + Manager.getVelocity();
                             sendMessage(locationInfo);
@@ -131,7 +139,7 @@ public class ASClient {
 
                     }
 
-                    Log.e("RESPONSE FROM SERVER", "S: Received Message: '" + serverMessage + "'");
+                    // Log.e("RESPONSE FROM SERVER", "S: Received Message: '" + serverMessage + "'");
 
                 } catch (Exception e) {
 
@@ -150,11 +158,51 @@ public class ASClient {
             }
 
         }
+        else {
+            //String udpMsg = "hello world from UDP client " + SERVERPORT_UDP;
+            DatagramSocket ds = null;
+            try {
+                ds = new DatagramSocket(UDP_RECEIVE);
+                InetAddress serverAddr = InetAddress.getByName(SERVERIP);
+                byte[] lMsg = new byte[512];
+                DatagramPacket dpReceive = new DatagramPacket(lMsg, lMsg.length);
+                boolean first = true;
+                while (mRun) {
+                if (isSendingOptionEnabled) {
+                    manager.updatePosition();
+                    String udpMsg = Manager.getLongitude() + ":" + Manager.getLatitude() + ":" + Manager.getAltitude() + ":" + Manager.getVelocity();
+                    //sendMessage(locationInfo);
+                    if (first) {
+                        udpMsg = manager.getIp();
+                        first = false;
+                    }
+                    DatagramPacket dp = new DatagramPacket(udpMsg.getBytes(), udpMsg.length(), serverAddr, SERVERPORT_UDP);
+                    ds.send(dp);
 
-        else
-        {
+                }
+                    ds.receive(dpReceive);
 
+
+                    String msgReceived = new String(lMsg, 0, dpReceive.getLength());
+                    mMessageListener.messageReceived("From server: " + msgReceived);
+
+                    Thread.sleep(1000);
+                }
+            } catch (SocketException e) {
+                e.printStackTrace();
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (ds != null) {
+                    ds.close();
+                }
+            }
         }
+        //}
     }
 
     //Declare the interface. The method messageReceived(String message) will must be implemented in the MyActivity

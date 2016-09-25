@@ -16,11 +16,12 @@ import java.util.Date;
 public class ASServer extends Thread {
 
     public static final int SERVERPORT = 4221;
-    public static final int SERVERPORT_UDP = 4222;
+
     private boolean running = false;
     private PrintWriter mOut;
     private OnMessageReceived messageListener;
 
+    private String clientIp;
     //Stores the received info here
     ArrayList<String> info;
 
@@ -54,6 +55,10 @@ public class ASServer extends Thread {
         }
     }
 
+    public String getClientIp() {
+        return clientIp;
+    }
+
     @Override
     public void run() {
         super.run();
@@ -69,10 +74,9 @@ public class ASServer extends Thread {
 
             System.out.println("S: Initiating UDP Server...");
 
-            byte[] lMsg = new byte[512];
-            DatagramPacket dp = new DatagramPacket(lMsg, lMsg.length);
-            DatagramSocket ds = new DatagramSocket(SERVERPORT_UDP);
-            
+            ASUDPServer as = new ASUDPServer(messageListener, this);
+            as.start();
+
             System.out.println("Initiated.");
 
             //create client socket... the method accept() listens for a connection to be made to this socket and accepts it.
@@ -96,12 +100,12 @@ public class ASServer extends Thread {
                     if(!connectionEstablished)
                     {
                             //First message must be client ip
-                            sendMessage("HAIL2U, " + message + ", let's TCP");
+                            sendMessage("HAIL2U," + message);
                             connectionEstablished=true;
 
                     }
 
-                    info.add(message);
+//                    info.add(message);
 
                     sendMessage("RECEIVED -- " + message);
 
@@ -109,9 +113,9 @@ public class ASServer extends Thread {
                     {
                         //call the method messageReceived from ServerBoard class
                         messageListener.messageReceived(message);
+                        System.out.println(new Date() + " - Received through TCP - " + message);
                     }
 
-                    System.out.println(new Date() + " - Received - " + message);
                     //add protocol
                 }
 

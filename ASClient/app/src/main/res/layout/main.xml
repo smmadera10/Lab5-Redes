@@ -28,6 +28,6 @@
                 android:layout_height="wrap_content"
                 android:id="@+id/protocol_button"
                 android:layout_gravity="center_vertical"
-                android:text="tcp" />
+                android:text="use udp" />
     </LinearLayout>
 </LinearLayout>
