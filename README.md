@@ -7,12 +7,20 @@
 To run it:
 
 From a PC:
+
 1. Verify your WiFi connection
+
 2. Open the server
+
 3. Press "Start"
 
+
 From an Android phone:
+
 1. Install the application
+
 2. Connect to the same WiFi as the PC (only tested it in the same wifi)
+
 3. Make sure your GPS is on
+
 4. Select the network protocol you would like your location to be sent
